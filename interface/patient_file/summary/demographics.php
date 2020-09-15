@@ -11,16 +11,19 @@
 * @author    Stephen Waite <stephen.waite@cmsvt.com>
 * @author    Ranganath Pathak <pathak@scrs1.org>
 * @author    Tyler Wrenn <tyler@tylerwrenn.com>
+* @author    Wejdan Bagais <w.bagais@gmail.com>
 * @copyright Copyright (c) 2017-2020 Brady Miller <brady.g.miller@gmail.com>
 * @copyright Copyright (c) 2017 Sharon Cohen <sharonco@matrix.co.il>
 * @copyright Copyright (c) 2018-2020 Stephen Waite <stephen.waite@cmsvt.com>
 * @copyright Copyright (c) 2018 Ranganath Pathak <pathak@scrs1.org>
 * @copyright Copyright (c) 2020 Tyler Wrenn <tyler@tylerwrenn.com>
+* @copyright Copyright (c) 2020 Wejdan Bagais <w.bagais@gmail.com>
 * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
 */
 
 require_once("../../globals.php");
 require_once("$srcdir/patient.inc");
+require_once("$srcdir/panel.inc");
 require_once("$srcdir/options.inc.php");
 require_once("../history/history.inc.php");
 require_once("$srcdir/clinical_rules.php");
@@ -1500,6 +1503,62 @@ while ($gfrow = sqlFetchArray($gfres)) {
                         echo "<div class='text ml-2'><div class='spinner-border spinner-border-sm' role='status'><span class='sr-only'>" . xlt('Loading') . "...</span></div></div><br />";
                         echo "</div>";
                     } // end if crw
+                    //////////////////////////////////////////////////////////////////
+                    // Show Panels  for selected user.
+                    echo "<div>";
+                    if (isset($pid)) {
+                      // Panels summary expand collapse widget
+                      $widgetTitle = xl("Panels");
+                      $widgetLabel = "Panels";
+                      $widgetButtonLabel = xl("Edit");
+                      //$widgetButtonLink = "javascript:load_location(\"${GLOBALS['webroot']}/interface/patient_file/summary/panels.php\")";
+                      $widgetButtonLink = "panels.php";
+                      $widgetButtonClass = "";
+                      //$linkMethod = "javascript";
+                      $linkMethod = "html";
+                      $bodyClass = "summary_item small";
+                      $widgetAuth = true;
+                      $fixedWidth = false;
+
+                      expand_collapse_widget($widgetTitle, $widgetLabel, $widgetButtonLabel,$widgetButtonLink,
+                      $widgetButtonClass, $linkMethod, $bodyClass, $widgetAuth, $fixedWidth);
+
+                      #sqlQuery return the 1st row Only
+                      #sqlQueryNoLogIgnoreError ignore error and return the 1st row
+                      #sqlStatement return all the results
+
+                      #dispday patient current panels
+                      $panels = getPanelCategoryByPatient_id($pid);
+                      $resultSet = getPatientPanelsInfo($pid);
+                      if ($resultSet === -1 or sqlNumRows($panels)<1) {
+                        echo ("This patien is not inrolled in any panel");
+                      }
+
+                      while ($row = sqlFetchArray($panels)) {
+                        //print the category
+                        echo "<b>" . attr($row['name']) . ": </b> <br/>";
+
+                        $SubPanels = getPatientPanelsInfo($pid,$row['name']);
+
+                        while ($row = sqlFetchArray($SubPanels)) {
+                          //print the sub panels
+                          $pc_eventDate = sqlFetchArray(getPanelAppointment($row['panel'], $pid))['pc_eventDate'];
+                          echo attr($row['panel']) . " <br/>";
+                          echo "<b>Enrollment Date: </b>" . attr($row['enrollment_date']) . " <br/>";
+                          if (strtotime($pc_eventDate) > date("d/m/y")){
+                            echo "<b>Follow Up Date: </b>"
+                            . attr($pc_eventDate) . " <br/>";
+                          }
+                        }
+                        echo "<br/>"; // to keep empty line between the panels
+                      }
+
+                      echo "<br/>";
+                      echo "</div>";
+                    } // end panel
+                    //////////////////////////////////////////////////////////////////
+                    
+
 
                 // Show current and upcoming appointments.
                 //
